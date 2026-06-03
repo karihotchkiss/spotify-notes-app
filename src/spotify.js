@@ -113,8 +113,11 @@ export const getUserPlaylists = async () => {
 
 export const getPlaylistTracks = async (playlistId) => {
   // Use /items endpoint instead of /tracks - works in Development Mode!
+  console.log('Fetching tracks for playlist:', playlistId);
   const data = await spotifyFetch(`/playlists/${playlistId}/items`);
-  return data.items
+  console.log('Raw playlist data:', data);
+  console.log('Items count:', data.items?.length);
+  const tracks = data.items
     .filter(item => item.track && item.track.id) // Filter out null/deleted tracks
     .map(item => ({
       id: item.track.id,
@@ -124,6 +127,8 @@ export const getPlaylistTracks = async (playlistId) => {
       image: item.track.album.images[0]?.url,
       uri: item.track.uri,
     }));
+  console.log('Processed tracks:', tracks.length, tracks);
+  return tracks;
 };
 
 export const getCurrentUser = async () => {

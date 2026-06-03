@@ -120,6 +120,82 @@ function PlaylistView({ userId, user: firebaseUser, onLogout }) {
     URL.revokeObjectURL(url);
   };
 
+  const handleImportNotes = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const lines = text.split('\n');
+
+      let currentTrack = null;
+      let trackName = '';
+      let artistName = '';
+      let noteText = '';
+      let imported = 0;
+      let notFound = 0;
+
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i].trim();
+
+        // Match track number and name: "1. Track Name"
+        if (/^\d+\.\s+(.+)$/.test(line)) {
+          // Save previous track if exists
+          if (currentTrack && noteText) {
+            await handleSaveNote(currentTrack.id, noteText);
+            imported++;
+          } else if (trackName && !currentTrack) {
+            notFound++;
+          }
+
+          // Start new track
+          trackName = line.replace(/^\d+\.\s+/, '');
+          artistName = '';
+          noteText = '';
+          currentTrack = null;
+        }
+        // Match artist line: "   Artist: Artist Name"
+        else if (line.startsWith('Artist:')) {
+          artistName = line.replace('Artist:', '').trim();
+          // Try to find matching track
+          currentTrack = tracks.find(t =>
+            t.name.toLowerCase() === trackName.toLowerCase() &&
+            t.artist.toLowerCase().includes(artistName.toLowerCase())
+          );
+        }
+        // Match note line: "   Note: Note text"
+        else if (line.startsWith('Note:')) {
+          noteText = line.replace('Note:', '').trim();
+        }
+      }
+
+      // Save last track
+      if (currentTrack && noteText) {
+        await handleSaveNote(currentTrack.id, noteText);
+        imported++;
+      } else if (trackName && !currentTrack) {
+        notFound++;
+      }
+
+      // Reload notes to show imported data
+      await loadPlaylistTracks(selectedPlaylist.id);
+
+      let message = `Import complete!\n\n`;
+      message += `✅ ${imported} note(s) imported successfully\n`;
+      if (notFound > 0) {
+        message += `⚠️ ${notFound} track(s) not found in this playlist`;
+      }
+      alert(message);
+
+    } catch (error) {
+      console.error('Import error:', error);
+      alert('Error importing notes. Please make sure the file format is correct.');
+    }
+
+    // Clear file input
+    event.target.value = '';
+  };
+
   if (loading) {
     return (
       <div className="playlist-loading">
@@ -190,9 +266,20 @@ function PlaylistView({ userId, user: firebaseUser, onLogout }) {
                       onChange={(e) => setSearchQuery(e.target.value)}
                     />
                   </div>
-                  <button className="export-btn" onClick={handleExportNotes} title="Export notes">
-                    📥 Export Notes
-                  </button>
+                  <div className="action-buttons">
+                    <label className="import-btn" title="Import notes">
+                      📤 Import Notes
+                      <input
+                        type="file"
+                        accept=".txt"
+                        onChange={handleImportNotes}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                    <button className="export-btn" onClick={handleExportNotes} title="Export notes">
+                      📥 Export Notes
+                    </button>
+                  </div>
                 </div>
               </div>
               <TrackList

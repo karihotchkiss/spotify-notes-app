@@ -1,11 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getUserPlaylists, getPlaylistTracks, getCurrentUser } from '../spotify';
-import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 import TrackList from './TrackList';
 import './PlaylistView.css';
 
-function PlaylistView({ userId, onLogout }) {
+function PlaylistView({ onLogout }) {
   const [playlists, setPlaylists] = useState([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [tracks, setTracks] = useState([]);
@@ -41,12 +39,13 @@ function PlaylistView({ userId, onLogout }) {
       const tracksData = await getPlaylistTracks(playlistId);
       setTracks(tracksData);
 
-      // Load notes for these tracks
+      // Load notes from localStorage
       const notesData = {};
+      const storedNotes = localStorage.getItem('spotify_notes') || '{}';
+      const allNotes = JSON.parse(storedNotes);
       for (const track of tracksData) {
-        const noteDoc = await getDoc(doc(db, 'notes', `${userId}_${track.id}`));
-        if (noteDoc.exists()) {
-          notesData[track.id] = noteDoc.data().note;
+        if (allNotes[track.id]) {
+          notesData[track.id] = allNotes[track.id];
         }
       }
       setNotes(notesData);
@@ -61,14 +60,13 @@ function PlaylistView({ userId, onLogout }) {
     loadPlaylistTracks(playlist.id);
   };
 
-  const handleSaveNote = async (trackId, note) => {
+  const handleSaveNote = (trackId, note) => {
     try {
-      await setDoc(doc(db, 'notes', `${userId}_${trackId}`), {
-        userId,
-        trackId,
-        note,
-        updatedAt: new Date().toISOString()
-      });
+      // Save to localStorage
+      const storedNotes = localStorage.getItem('spotify_notes') || '{}';
+      const allNotes = JSON.parse(storedNotes);
+      allNotes[trackId] = note;
+      localStorage.setItem('spotify_notes', JSON.stringify(allNotes));
       setNotes(prev => ({ ...prev, [trackId]: note }));
     } catch (error) {
       console.error('Error saving note:', error);

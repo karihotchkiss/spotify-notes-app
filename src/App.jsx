@@ -1,15 +1,26 @@
 import { useState, useEffect } from 'react';
 import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken, exchangeCodeForToken } from './spotify';
+import { auth } from './firebase';
+import { signInAnonymously } from 'firebase/auth';
 import Login from './components/Login';
 import PlaylistView from './components/PlaylistView';
 import './App.css';
 
 function App() {
   const [spotifyToken, setSpotifyToken] = useState(null);
+  const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleSpotifyCallback = async () => {
+    const handleAuth = async () => {
+      // Sign in to Firebase anonymously
+      try {
+        const userCredential = await signInAnonymously(auth);
+        setUserId(userCredential.user.uid);
+      } catch (error) {
+        console.error('Firebase auth error:', error);
+      }
+
       // Check for authorization code in URL (OAuth callback)
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
@@ -32,7 +43,7 @@ function App() {
       setLoading(false);
     };
 
-    handleSpotifyCallback();
+    handleAuth();
   }, []);
 
   const handleLogin = async () => {
@@ -64,6 +75,7 @@ function App() {
         <Login onLogin={handleLogin} />
       ) : (
         <PlaylistView
+          userId={userId}
           onLogout={handleLogout}
         />
       )}

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
 import { getUserPlaylists, getPlaylistTracks, getCurrentUser } from '../spotify';
+import { db } from '../firebase';
+import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import TrackList from './TrackList';
 import './PlaylistView.css';
 
-function PlaylistView({ onLogout }) {
+function PlaylistView({ userId, onLogout }) {
   const [playlists, setPlaylists] = useState([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [tracks, setTracks] = useState([]);
@@ -39,16 +41,17 @@ function PlaylistView({ onLogout }) {
       const tracksData = await getPlaylistTracks(playlistId);
       setTracks(tracksData);
 
-      // Load notes from localStorage
-      const notesData = {};
-      const storedNotes = localStorage.getItem('spotify_notes') || '{}';
-      const allNotes = JSON.parse(storedNotes);
-      for (const track of tracksData) {
-        if (allNotes[track.id]) {
-          notesData[track.id] = allNotes[track.id];
+      // Load notes from Firebase
+      if (userId) {
+        const notesData = {};
+        for (const track of tracksData) {
+          const noteDoc = await getDoc(doc(db, 'users', userId, 'notes', track.id));
+          if (noteDoc.exists()) {
+            notesData[track.id] = noteDoc.data().note;
+          }
         }
+        setNotes(notesData);
       }
-      setNotes(notesData);
     } catch (error) {
       console.error('Error loading tracks:', error);
     }
@@ -60,14 +63,17 @@ function PlaylistView({ onLogout }) {
     loadPlaylistTracks(playlist.id);
   };
 
-  const handleSaveNote = (trackId, note) => {
+  const handleSaveNote = async (trackId, note) => {
     try {
-      // Save to localStorage
-      const storedNotes = localStorage.getItem('spotify_notes') || '{}';
-      const allNotes = JSON.parse(storedNotes);
-      allNotes[trackId] = note;
-      localStorage.setItem('spotify_notes', JSON.stringify(allNotes));
-      setNotes(prev => ({ ...prev, [trackId]: note }));
+      // Save to Firebase
+      if (userId) {
+        await setDoc(doc(db, 'users', userId, 'notes', trackId), {
+          note: note,
+          trackId: trackId,
+          updatedAt: new Date().toISOString()
+        });
+        setNotes(prev => ({ ...prev, [trackId]: note }));
+      }
     } catch (error) {
       console.error('Error saving note:', error);
     }

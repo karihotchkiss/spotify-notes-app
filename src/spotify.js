@@ -112,7 +112,8 @@ export const getUserPlaylists = async () => {
 };
 
 export const getPlaylistTracks = async (playlistId) => {
-  const data = await spotifyFetch(`/playlists/${playlistId}/tracks`);
+  // Use /items endpoint instead of /tracks - works in Development Mode!
+  const data = await spotifyFetch(`/playlists/${playlistId}/items`);
   return data.items
     .filter(item => item.track && item.track.id) // Filter out null/deleted tracks
     .map(item => ({

@@ -85,6 +85,41 @@ function PlaylistView({ userId, user: firebaseUser, onLogout }) {
     notes[track.id]?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleExportNotes = () => {
+    // Filter tracks that have notes
+    const tracksWithNotes = tracks.filter(track => notes[track.id]);
+
+    if (tracksWithNotes.length === 0) {
+      alert('No notes to export in this playlist!');
+      return;
+    }
+
+    // Create export content
+    let content = `${selectedPlaylist.name}\n`;
+    content += `Exported: ${new Date().toLocaleDateString()}\n`;
+    content += `Total tracks with notes: ${tracksWithNotes.length}\n`;
+    content += `\n${'='.repeat(80)}\n\n`;
+
+    tracksWithNotes.forEach((track, index) => {
+      content += `${index + 1}. ${track.name}\n`;
+      content += `   Artist: ${track.artist}\n`;
+      content += `   Album: ${track.album}\n`;
+      content += `   Note: ${notes[track.id]}\n`;
+      content += `\n`;
+    });
+
+    // Create and download file
+    const blob = new Blob([content], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${selectedPlaylist.name.replace(/[^a-z0-9]/gi, '_')}_notes.txt`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
   if (loading) {
     return (
       <div className="playlist-loading">
@@ -146,13 +181,18 @@ function PlaylistView({ userId, user: firebaseUser, onLogout }) {
                     <p>{selectedPlaylist.items?.total || selectedPlaylist.tracks?.total || 0} tracks</p>
                   </div>
                 </div>
-                <div className="search-box">
-                  <input
-                    type="text"
-                    placeholder="Search tracks or notes..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
+                <div className="track-actions">
+                  <div className="search-box">
+                    <input
+                      type="text"
+                      placeholder="Search tracks or notes..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                  </div>
+                  <button className="export-btn" onClick={handleExportNotes} title="Export notes">
+                    📥 Export Notes
+                  </button>
                 </div>
               </div>
               <TrackList

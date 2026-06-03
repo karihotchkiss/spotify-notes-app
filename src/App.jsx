@@ -29,6 +29,7 @@ function App() {
           setSpotifyToken(token);
         }
       }
+      setLoading(false);
     };
 
     handleSpotifyCallback();

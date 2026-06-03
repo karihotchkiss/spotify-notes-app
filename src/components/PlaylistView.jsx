@@ -119,7 +119,7 @@ function PlaylistView({ userId, onLogout }) {
                 )}
                 <div className="playlist-info">
                   <div className="playlist-name">{playlist.name}</div>
-                  <div className="playlist-count">{playlist.tracks.total} tracks</div>
+                  <div className="playlist-count">{playlist.tracks?.total || 0} tracks</div>
                 </div>
               </div>
             ))}
@@ -136,7 +136,7 @@ function PlaylistView({ userId, onLogout }) {
                   )}
                   <div>
                     <h2>{selectedPlaylist.name}</h2>
-                    <p>{selectedPlaylist.tracks.total} tracks</p>
+                    <p>{selectedPlaylist.tracks?.total || 0} tracks</p>
                   </div>
                 </div>
                 <div className="search-box">

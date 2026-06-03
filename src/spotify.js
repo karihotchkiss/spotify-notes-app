@@ -109,14 +109,16 @@ export const getUserPlaylists = async () => {
 
 export const getPlaylistTracks = async (playlistId) => {
   const data = await spotifyFetch(`/playlists/${playlistId}/tracks`);
-  return data.items.map(item => ({
-    id: item.track.id,
-    name: item.track.name,
-    artist: item.track.artists.map(a => a.name).join(', '),
-    album: item.track.album.name,
-    image: item.track.album.images[0]?.url,
-    uri: item.track.uri,
-  }));
+  return data.items
+    .filter(item => item.track && item.track.id) // Filter out null/deleted tracks
+    .map(item => ({
+      id: item.track.id,
+      name: item.track.name,
+      artist: item.track.artists.map(a => a.name).join(', '),
+      album: item.track.album.name,
+      image: item.track.album.images[0]?.url,
+      uri: item.track.uri,
+    }));
 };
 
 export const getCurrentUser = async () => {

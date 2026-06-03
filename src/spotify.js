@@ -96,7 +96,9 @@ const spotifyFetch = async (endpoint) => {
       clearAccessToken();
       throw new Error('Token expired');
     }
-    throw new Error('Spotify API error');
+    const errorText = await response.text();
+    console.error('Spotify API error:', response.status, errorText);
+    throw new Error(`Spotify API error: ${response.status} - ${errorText}`);
   }
 
   return response.json();

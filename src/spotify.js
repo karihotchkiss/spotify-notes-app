@@ -104,6 +104,8 @@ const spotifyFetch = async (endpoint) => {
 
 export const getUserPlaylists = async () => {
   const data = await spotifyFetch('/me/playlists?limit=50');
+  console.log('Playlists fetched:', data.items.length);
+  console.log('First playlist sample:', data.items[0]);
   return data.items;
 };
 

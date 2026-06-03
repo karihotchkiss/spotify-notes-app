@@ -2,6 +2,8 @@
 
 Add personal notes to your favorite Spotify tracks. Remember why you love each song, capture memories, and keep your musical journal synced across all devices.
 
+🌐 **Live App**: https://spotify-notes-app.vercel.app
+
 ## ✨ Features
 
 - 🎧 **Connect with Spotify** - Access all your playlists

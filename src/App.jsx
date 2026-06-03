@@ -57,6 +57,10 @@ function App() {
   const handleLogout = () => {
     clearAccessToken();
     setSpotifyToken(null);
+    // Clear all localStorage to ensure fresh auth
+    localStorage.clear();
+    // Also clear session storage
+    sessionStorage.clear();
   };
 
   if (loading) {

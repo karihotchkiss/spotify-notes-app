@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
-import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken } from './spotify';
+import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken, exchangeCodeForToken } from './spotify';
 import Login from './components/Login';
 import PlaylistView from './components/PlaylistView';
 import './App.css';
@@ -12,22 +12,29 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for Spotify token in URL hash (OAuth callback)
-    const hash = window.location.hash;
-    if (hash) {
-      const params = new URLSearchParams(hash.substring(1));
-      const token = params.get('access_token');
-      if (token) {
-        setAccessToken(token);
-        setSpotifyToken(token);
-        window.history.replaceState({}, document.title, '/');
+    const handleSpotifyCallback = async () => {
+      // Check for authorization code in URL (OAuth callback)
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get('code');
+
+      if (code) {
+        try {
+          const token = await exchangeCodeForToken(code);
+          setAccessToken(token);
+          setSpotifyToken(token);
+          window.history.replaceState({}, document.title, '/');
+        } catch (error) {
+          console.error('Error exchanging code for token:', error);
+        }
+      } else {
+        const token = getAccessToken();
+        if (token) {
+          setSpotifyToken(token);
+        }
       }
-    } else {
-      const token = getAccessToken();
-      if (token) {
-        setSpotifyToken(token);
-      }
-    }
+    };
+
+    handleSpotifyCallback();
 
     // Firebase anonymous auth for cloud storage
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -42,8 +49,9 @@ function App() {
     return () => unsubscribe();
   }, []);
 
-  const handleLogin = () => {
-    window.location.href = getAuthUrl();
+  const handleLogin = async () => {
+    const authUrl = await getAuthUrl();
+    window.location.href = authUrl;
   };
 
   const handleLogout = () => {

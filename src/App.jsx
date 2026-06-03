@@ -1,12 +1,14 @@
 import { useState, useEffect } from 'react';
-import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken, exchangeCodeForToken, getCurrentUser } from './spotify';
+import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
+import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken, exchangeCodeForToken } from './spotify';
 import Login from './components/Login';
-import NotesView from './components/NotesView';
+import PlaylistView from './components/PlaylistView';
 import './App.css';
 
 function App() {
   const [spotifyToken, setSpotifyToken] = useState(null);
-  const [spotifyUser, setSpotifyUser] = useState(null);
+  const [firebaseUser, setFirebaseUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -21,9 +23,6 @@ function App() {
           setAccessToken(token);
           setSpotifyToken(token);
           window.history.replaceState({}, document.title, '/');
-          // Get user info
-          const user = await getCurrentUser();
-          setSpotifyUser(user);
         } catch (error) {
           console.error('Error exchanging code for token:', error);
         }
@@ -31,19 +30,23 @@ function App() {
         const token = getAccessToken();
         if (token) {
           setSpotifyToken(token);
-          // Try to get user info
-          try {
-            const user = await getCurrentUser();
-            setSpotifyUser(user);
-          } catch (error) {
-            console.error('Error getting user:', error);
-          }
         }
       }
-      setLoading(false);
     };
 
     handleSpotifyCallback();
+
+    // Firebase anonymous auth for cloud storage
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setFirebaseUser(user);
+      } else {
+        signInAnonymously(auth).catch(console.error);
+      }
+      setLoading(false);
+    });
+
+    return () => unsubscribe();
   }, []);
 
   const handleLogin = async () => {
@@ -74,8 +77,8 @@ function App() {
       {!spotifyToken ? (
         <Login onLogin={handleLogin} />
       ) : (
-        <NotesView
-          user={spotifyUser}
+        <PlaylistView
+          userId={firebaseUser?.uid}
           onLogout={handleLogout}
         />
       )}

@@ -113,21 +113,17 @@ export const getUserPlaylists = async () => {
 
 export const getPlaylistTracks = async (playlistId) => {
   // Use /items endpoint instead of /tracks - works in Development Mode!
-  console.log('Fetching tracks for playlist:', playlistId);
   const data = await spotifyFetch(`/playlists/${playlistId}/items`);
-  console.log('Raw playlist data:', data);
-  console.log('Items count:', data.items?.length);
   const tracks = data.items
-    .filter(item => item.track && item.track.id) // Filter out null/deleted tracks
+    .filter(item => item.item && item.item.id) // Filter out null/deleted tracks - note: it's item.item not item.track
     .map(item => ({
-      id: item.track.id,
-      name: item.track.name,
-      artist: item.track.artists.map(a => a.name).join(', '),
-      album: item.track.album.name,
-      image: item.track.album.images[0]?.url,
-      uri: item.track.uri,
+      id: item.item.id,
+      name: item.item.name,
+      artist: item.item.artists.map(a => a.name).join(', '),
+      album: item.item.album.name,
+      image: item.item.album.images[0]?.url,
+      uri: item.item.uri,
     }));
-  console.log('Processed tracks:', tracks.length, tracks);
   return tracks;
 };
 

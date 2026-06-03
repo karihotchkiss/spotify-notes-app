@@ -5,7 +5,7 @@ import { collection, doc, getDoc, setDoc } from 'firebase/firestore';
 import TrackList from './TrackList';
 import './PlaylistView.css';
 
-function PlaylistView({ userId, onLogout }) {
+function PlaylistView({ userId, user: firebaseUser, onLogout }) {
   const [playlists, setPlaylists] = useState([]);
   const [selectedPlaylist, setSelectedPlaylist] = useState(null);
   const [tracks, setTracks] = useState([]);
@@ -99,12 +99,15 @@ function PlaylistView({ userId, onLogout }) {
       <header className="app-header">
         <div className="header-content">
           <h1>🎵 Spotify Notes</h1>
-          {user && (
-            <div className="user-info">
-              <span className="username">{user.display_name}</span>
-              <button className="logout-btn" onClick={onLogout}>Logout</button>
-            </div>
-          )}
+          <div className="user-info">
+            {firebaseUser && (
+              <span className="username">{firebaseUser.displayName || firebaseUser.email}</span>
+            )}
+            {user && user.display_name && (
+              <span className="username"> • {user.display_name}</span>
+            )}
+            <button className="logout-btn" onClick={onLogout}>Logout</button>
+          </div>
         </div>
       </header>
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAccessToken, setAccessToken, getAuthUrl, clearAccessToken, exchangeCodeForToken } from './spotify';
 import { auth } from './firebase';
-import { signInAnonymously } from 'firebase/auth';
+import { signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from 'firebase/auth';
 import Login from './components/Login';
 import PlaylistView from './components/PlaylistView';
 import './App.css';
@@ -9,19 +9,21 @@ import './App.css';
 function App() {
   const [spotifyToken, setSpotifyToken] = useState(null);
   const [userId, setUserId] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const handleAuth = async () => {
-      // Sign in to Firebase anonymously
-      try {
-        const userCredential = await signInAnonymously(auth);
-        setUserId(userCredential.user.uid);
-      } catch (error) {
-        console.error('Firebase auth error:', error);
+    // Listen for Firebase auth state changes
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        setUserId(firebaseUser.uid);
+        setUser(firebaseUser);
+      } else {
+        setUserId(null);
+        setUser(null);
       }
 
-      // Check for authorization code in URL (OAuth callback)
+      // Check for Spotify authorization code in URL (OAuth callback)
       const urlParams = new URLSearchParams(window.location.search);
       const code = urlParams.get('code');
 
@@ -41,23 +43,40 @@ function App() {
         }
       }
       setLoading(false);
-    };
+    });
 
-    handleAuth();
+    return () => unsubscribe();
   }, []);
 
-  const handleLogin = async () => {
+  const handleGoogleSignIn = async () => {
+    try {
+      const provider = new GoogleAuthProvider();
+      await signInWithPopup(auth, provider);
+      // User state will be set by onAuthStateChanged
+    } catch (error) {
+      console.error('Google sign-in error:', error);
+    }
+  };
+
+  const handleSpotifyLogin = async () => {
     const authUrl = await getAuthUrl();
     window.location.href = authUrl;
   };
 
-  const handleLogout = () => {
-    clearAccessToken();
-    setSpotifyToken(null);
-    // Clear all localStorage to ensure fresh auth
-    localStorage.clear();
-    // Also clear session storage
-    sessionStorage.clear();
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      clearAccessToken();
+      setSpotifyToken(null);
+      setUserId(null);
+      setUser(null);
+      // Clear all localStorage to ensure fresh auth
+      localStorage.clear();
+      // Also clear session storage
+      sessionStorage.clear();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   if (loading) {
@@ -71,11 +90,14 @@ function App() {
 
   return (
     <div className="app">
-      {!spotifyToken ? (
-        <Login onLogin={handleLogin} />
+      {!user ? (
+        <Login onGoogleSignIn={handleGoogleSignIn} />
+      ) : !spotifyToken ? (
+        <Login onLogin={handleSpotifyLogin} user={user} />
       ) : (
         <PlaylistView
           userId={userId}
+          user={user}
           onLogout={handleLogout}
         />
       )}
